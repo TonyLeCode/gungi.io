@@ -13,6 +13,10 @@
 
 ---
 
+This is a fork of Jwyce's repo to fix some bugs.
+
+---
+
 ## WARNING
 This project is no longer actively maintained so the site might be down whenever I run out of free credits. When I get time in the future I would love to revisit the project and make it even better! Thanks for your understanding :)
 
