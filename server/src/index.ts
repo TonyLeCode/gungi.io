@@ -24,7 +24,7 @@ const io = require('socket.io')(http, {
 	pingTimeout: 60000,
 });
 
-const { Gungi } = require('gungi.js');
+const { Gungi } = require('gungi.js-fork');
 
 const main = async () => {
 	const sessionStore = new InMemorySessionStore();
