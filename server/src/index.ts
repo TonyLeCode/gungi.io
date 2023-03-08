@@ -33,7 +33,7 @@ const main = async () => {
 
 	io.use((socket: any, next: any) => {
 		const username = socket.handshake.auth.username;
-		console.log(socket.handshake)
+		console.log("auth:", socket.handshake.auth)
 		const gameId = socket.handshake.auth.gameId;
 		socket.username = username;
 		socket.gameId = gameId;
@@ -60,7 +60,7 @@ const main = async () => {
 				userType: 'creator',
 			});
 		} else {
-			// TODO add timeout reset logic and reconnect here
+			// TODO add reconnect here
 			roomId = socket.gameId;
 
 			sessionStore.addUser(roomId, {
@@ -156,9 +156,8 @@ const main = async () => {
 			} else {
 				// destory room and emit event
 				// TODO allow reconnect
-				// only destroy after x time has passed?
-				sessionStore.destroySession(roomId);
-				io.to(roomId).emit('game_destroyed');
+				// sessionStore.destroySession(roomId);
+				// io.to(roomId).emit('game_destroyed');
 			}
 		});
 	});

@@ -51,6 +51,7 @@ export const Login: React.FC<LoginProps> = ({
 					onSubmit={(e) => {
 						e.preventDefault();
 						callback();
+						// history.push(`/game/${gameId}`) //TODO route change?
 					}}
 				>
 					<Input

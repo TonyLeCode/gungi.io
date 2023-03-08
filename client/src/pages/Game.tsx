@@ -145,8 +145,7 @@ export const Game: React.FC<RouteComponentProps> = ({ history }) => {
 				})
 				.then((response) => {
 					if (response.isConfirmed) {
-						socket.disconnect();
-						history.push('/');
+						
 					}
 				});
 		});
@@ -163,8 +162,7 @@ export const Game: React.FC<RouteComponentProps> = ({ history }) => {
 				})
 				.then((response) => {
 					if (response.isConfirmed) {
-						socket.disconnect();
-						history.push('/');
+						
 					}
 				});
 		});
