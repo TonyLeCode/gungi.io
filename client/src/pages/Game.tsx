@@ -45,6 +45,7 @@ export const Game: React.FC<RouteComponentProps> = ({ history }) => {
 				}
 				if (room?.gameStarted) {
 					//@ts-ignore
+					// sets socket.handshake.gameId on backend
 					socket.auth = { username, gameId };
 					socket.connect();
 					socket.emit('spectate_active_game', { gameId });

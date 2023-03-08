@@ -3,6 +3,7 @@ import 'dotenv-safe/config';
 import cors from 'cors';
 import express from 'express';
 import { v4 } from 'uuid';
+import { nanoid } from 'nanoid';
 
 import { InMemorySessionStore, Move, User } from './sessionStore';
 import { logoSvg } from './helper';
@@ -28,9 +29,11 @@ const { Gungi } = require('gungi.js-fork');
 
 const main = async () => {
 	const sessionStore = new InMemorySessionStore();
+	console.log(nanoid())
 
 	io.use((socket: any, next: any) => {
 		const username = socket.handshake.auth.username;
+		console.log(socket.handshake)
 		const gameId = socket.handshake.auth.gameId;
 		socket.username = username;
 		socket.gameId = gameId;
@@ -49,6 +52,7 @@ const main = async () => {
 				game: new Gungi(),
 				users: [],
 				gameStarted: false,
+				disconnectTimer: null,
 			});
 			sessionStore.addUser(roomId, {
 				userId: socket.id,
@@ -56,6 +60,7 @@ const main = async () => {
 				userType: 'creator',
 			});
 		} else {
+			// TODO add timeout reset logic and reconnect here
 			roomId = socket.gameId;
 
 			sessionStore.addUser(roomId, {
@@ -150,6 +155,8 @@ const main = async () => {
 				});
 			} else {
 				// destory room and emit event
+				// TODO allow reconnect
+				// only destroy after x time has passed?
 				sessionStore.destroySession(roomId);
 				io.to(roomId).emit('game_destroyed');
 			}

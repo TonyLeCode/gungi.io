@@ -52,6 +52,7 @@ export interface Session {
 	users: User[];
 	game: any;
 	gameStarted: boolean;
+	disconnectTimer: NodeJS.Timeout | null;
 }
 
 interface SessionStore {
@@ -87,6 +88,7 @@ export class InMemorySessionStore implements SessionStore {
 	}
 	destroySession(id: string): void {
 		this.sessions.delete(id);
+		console.log('Deleted session: ', id)
 	}
 	findAllSessions(): Session[] {
 		return [...this.sessions.values()];
