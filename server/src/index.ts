@@ -3,7 +3,7 @@ import 'dotenv-safe/config';
 import cors from 'cors';
 import express from 'express';
 import { v4 } from 'uuid';
-import { nanoid } from 'nanoid';
+// import { nanoid } from 'nanoid';
 
 import { InMemorySessionStore, Move, User } from './sessionStore';
 import { logoSvg } from './helper';
@@ -29,14 +29,15 @@ const { Gungi } = require('gungi.js-fork');
 
 const main = async () => {
 	const sessionStore = new InMemorySessionStore();
-	console.log(nanoid())
 
 	io.use((socket: any, next: any) => {
 		const username = socket.handshake.auth.username;
-		console.log("auth:", socket.handshake.auth)
 		const gameId = socket.handshake.auth.gameId;
+		const userId = socket.handshake.auth.userId;
+		console.log("auth:", socket.handshake.auth)
 		socket.username = username;
 		socket.gameId = gameId;
+		socket.userId = userId;
 		next();
 	});
 
@@ -52,22 +53,34 @@ const main = async () => {
 				game: new Gungi(),
 				users: [],
 				gameStarted: false,
-				disconnectTimer: null,
 			});
 			sessionStore.addUser(roomId, {
-				userId: socket.id,
+				userId: socket.userId,
 				username: socket.username,
 				userType: 'creator',
 			});
 		} else {
 			// TODO add reconnect here
-			roomId = socket.gameId;
+			const existingRoomId = sessionStore.getCurrentRoom(socket.userId)
 
-			sessionStore.addUser(roomId, {
-				userId: socket.id,
-				username: socket.username,
-				userType: 'spectator',
-			});
+			if(!existingRoomId || existingRoomId !== socket.gameId) {
+				roomId = socket.gameId;
+	
+				sessionStore.addUser(roomId, {
+					userId: socket.userId,
+					username: socket.username,
+					userType: 'spectator',
+				});
+			} else {
+				console.log('reconnected')
+				roomId = existingRoomId
+
+				// const updatedUsers = sessionStore.getUsers(roomId);
+				// io.to(roomId).emit('game', {
+				// 	gameState: sessionStore.getGameState(roomId),
+				// 	players: updatedUsers,
+				// });
+			}
 		}
 
 		users = sessionStore.getUsers(roomId);
@@ -109,7 +122,7 @@ const main = async () => {
 
 				if (move.type === 'ready') {
 					io.to(roomId).emit('readied', {
-						userId: socket.id,
+						userId: socket.userId,
 					});
 				}
 
@@ -121,7 +134,7 @@ const main = async () => {
 		);
 
 		socket.on('game_over', ({ forfeit }: { forfeit: boolean }) => {
-			const roomId = sessionStore.getCurrentRoom(socket.id) ?? '';
+			const roomId = sessionStore.getCurrentRoom(socket.userId) ?? '';
 			const game = sessionStore.getGameState(roomId);
 			// destory room and emit event
 			sessionStore.destroySession(roomId);
@@ -143,21 +156,22 @@ const main = async () => {
 		});
 
 		socket.on('disconnect', () => {
-			const roomId = sessionStore.getCurrentRoom(socket.id) ?? '';
+			const roomId = sessionStore.getCurrentRoom(socket.userId) ?? '';
 			const roomUsers = sessionStore.getUsers(roomId);
-			const user = roomUsers.find((x) => x.userId === socket.id);
+			const user = roomUsers.find((x) => x.userId === socket.userId);
 
 			if (user?.userType === 'spectator') {
 				// update players and emit event
-				sessionStore.removeUser(roomId, socket.id);
+				sessionStore.removeUser(roomId, socket.userId);
 				io.to(roomId).emit('users_updated', {
 					users: sessionStore.getUsers(roomId),
 				});
 			} else {
-				// destory room and emit event
-				// TODO allow reconnect
-				// sessionStore.destroySession(roomId);
-				// io.to(roomId).emit('game_destroyed');
+				if(roomUsers.length == 0){
+					// destory room and emit event
+					sessionStore.destroySession(roomId);
+					io.to(roomId).emit('game_destroyed');
+				}
 			}
 		});
 	});

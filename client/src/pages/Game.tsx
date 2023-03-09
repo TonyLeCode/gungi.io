@@ -8,6 +8,35 @@ import withReactContent from 'sweetalert2-react-content';
 
 import { GungiGame } from '../components/game/GungiGame';
 import { Login } from '../components/game/Login';
+import { nanoid } from 'nanoid';
+
+// function UserIdSessionHook(){
+// 	const [userId, setUserId] = useState('');
+// 	// const setUserIdSession = (value:string) => {sessionStorage.setItem('userId',value)}
+// 	useEffect(() => {
+// 		const temp = sessionStorage.getItem('userId')
+// 		if(temp){
+// 			setUserId(temp)
+// 		} else {
+// 			const newId = nanoid()
+// 			sessionStorage.setItem('userId', newId)
+// 			setUserId(newId)
+// 		}
+// 	}, []);
+// 	// return [userId, setUserIdSession] as const
+// 	return userId
+// }
+
+function userIdSession(): string{
+	const userId = sessionStorage.getItem('userId')
+	if(userId){
+		return userId
+	} else {
+		const temp = nanoid()
+		sessionStorage.setItem('userId', temp)
+		return temp
+	}
+}
 
 export const Game: React.FC<RouteComponentProps> = ({ history }) => {
 	document.title = 'Play | Gungi.io';
@@ -27,6 +56,8 @@ export const Game: React.FC<RouteComponentProps> = ({ history }) => {
 	const [players, setPlayers] = useState<User[] | undefined>(undefined);
 	const [gameState, setGameState] = useState<GameState | undefined>(undefined);
 	const [shouldConnect, setShouldConnect] = useState(false);
+	// const [userId, setUserId] = UserIdSessionHook();
+	const userId = userIdSession();
 	const swal = withReactContent(Swal);
 
 	const chooseName = () => {
@@ -46,7 +77,7 @@ export const Game: React.FC<RouteComponentProps> = ({ history }) => {
 				if (room?.gameStarted) {
 					//@ts-ignore
 					// sets socket.handshake.gameId on backend
-					socket.auth = { username, gameId };
+					socket.auth = { username, gameId, userId };
 					socket.connect();
 					socket.emit('spectate_active_game', { gameId });
 				} else {
@@ -70,7 +101,7 @@ export const Game: React.FC<RouteComponentProps> = ({ history }) => {
 	useEffect(() => {
 		if (shouldConnect) {
 			//@ts-ignore
-			socket.auth = { username, gameId };
+			socket.auth = { username, gameId, userId };
 			socket.connect();
 		}
 
@@ -85,8 +116,11 @@ export const Game: React.FC<RouteComponentProps> = ({ history }) => {
 				users.unshift(creator);
 			}
 
+			console.log("users", users)
 			users.forEach((user) => {
-				user.self = user.userId === socket.id;
+				user.self = user.userId === userId;
+				console.log("user", user)
+				console.log("userid", userId)
 			});
 
 			setPlayers(users);
@@ -106,7 +140,7 @@ export const Game: React.FC<RouteComponentProps> = ({ history }) => {
 
 				const users = game.players;
 				users.forEach((user) => {
-					user.self = user.userId === socket.id;
+					user.self = user.userId === userId;
 				});
 
 				setPlayers(users);
@@ -125,7 +159,7 @@ export const Game: React.FC<RouteComponentProps> = ({ history }) => {
 		socket.on('users_updated', (data: any) => {
 			const users: User[] = data.users;
 			users.forEach((user) => {
-				user.self = user.userId === socket.id;
+				user.self = user.userId === userId;
 			});
 			setPlayers(users);
 		});
@@ -179,7 +213,7 @@ export const Game: React.FC<RouteComponentProps> = ({ history }) => {
 				<GungiGame
 					gameState={gameState}
 					players={players}
-					socketId={socket.id}
+					userId={userId}
 					playersReadied={readied}
 					makeMoveCallback={makeMove}
 					forfeitCallback={forfeit}

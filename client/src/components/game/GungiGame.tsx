@@ -99,7 +99,7 @@ const SpectatorsWrapper = styled.div`
 interface GameProps {
 	gameState: GameState | undefined;
 	players: User[] | undefined;
-	socketId: string;
+	userId: string;
 	playersReadied: string[];
 	makeMoveCallback: (move: Move) => void;
 	forfeitCallback: () => void;
@@ -109,7 +109,7 @@ export const GungiGame: React.FC<GameProps> = observer(
 	({
 		gameState,
 		players,
-		socketId,
+		userId,
 		playersReadied,
 		makeMoveCallback,
 		forfeitCallback,
@@ -124,7 +124,7 @@ export const GungiGame: React.FC<GameProps> = observer(
 		const spectatorCount = players?.filter(
 			(x) => x.userType === 'spectator'
 		).length;
-		const socketPlayer = players?.find((x) => x.userId === socketId);
+		const socketPlayer = players?.find((x) => x.userId === userId);
 		const orientation = blackPlayer?.self ? 'black' : 'white';
 		const whiteReady = playersReadied.find((x) => x === whitePlayer?.userId)
 			? true

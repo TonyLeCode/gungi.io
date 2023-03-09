@@ -52,7 +52,6 @@ export interface Session {
 	users: User[];
 	game: any;
 	gameStarted: boolean;
-	disconnectTimer: NodeJS.Timeout | null;
 }
 
 interface SessionStore {
@@ -70,7 +69,7 @@ interface SessionStore {
 	removeUser(id: string, userId: string): void;
 	getGameState(id: string): GameState | undefined;
 	makeGameMove(id: string, move: Move): GameState | undefined;
-	getCurrentRoom(socketId: string): string | undefined;
+	getCurrentRoom(userId: string): string | undefined;
 }
 
 export class InMemorySessionStore implements SessionStore {
@@ -213,9 +212,10 @@ export class InMemorySessionStore implements SessionStore {
 
 		return undefined;
 	}
-	getCurrentRoom(socketId: string): string | undefined {
+	// returns room id of given user id
+	getCurrentRoom(userId: string): string | undefined {
 		for (let [key, value] of this.sessions.entries()) {
-			if (value.users.find((x) => x.userId === socketId)) {
+			if (value.users.find((x) => x.userId === userId)) {
 				return key;
 			}
 		}
