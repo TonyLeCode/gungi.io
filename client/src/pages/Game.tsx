@@ -28,12 +28,12 @@ import { nanoid } from 'nanoid';
 // }
 
 function userIdSession(): string{
-	const userId = sessionStorage.getItem('userId')
+	const userId = localStorage.getItem('userId')
 	if(userId){
 		return userId
 	} else {
 		const temp = nanoid()
-		sessionStorage.setItem('userId', temp)
+		localStorage.setItem('userId', temp)
 		return temp
 	}
 }
@@ -64,6 +64,10 @@ export const Game: React.FC<RouteComponentProps> = ({ history }) => {
 		setShouldConnect(true);
 		if (gameId) {
 			setRoomId(gameId);
+		} else {
+			// console.log(window.location.href)
+			// console.log(roomId)
+			// window.history.pushState(null, '', window.location.href + '/' + roomId)
 		}
 
 		fetch(`${process.env.REACT_APP_API_URL}/current_rooms`)
@@ -128,6 +132,10 @@ export const Game: React.FC<RouteComponentProps> = ({ history }) => {
 
 		socket.on('roomId', (data: string) => {
 			setRoomId(data);
+			const url = `${window.location.origin}/game/${data}`
+			if(url !== window.location.href){
+				window.history.pushState(null, '', url)
+			}
 		});
 
 		socket.on('readied', (data: any) => {
