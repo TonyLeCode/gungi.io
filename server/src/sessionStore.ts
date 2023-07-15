@@ -2,6 +2,7 @@ export interface User {
 	userId: string;
 	username: string;
 	userType: 'creator' | 'opponent' | 'spectator';
+	connected: boolean;
 }
 
 export type Piece = {

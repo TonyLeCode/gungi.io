@@ -176,6 +176,22 @@ export const Game: React.FC<RouteComponentProps> = ({ history }) => {
 	}, [state]);
 
 	useEffect(() => {
+		socket.on('user_disconnected', (msg: {user: string}) => {
+			console.log(`${msg.user} has disconnected`)
+			swal.fire({
+				title: <div>{msg.user} has disconnected</div>,
+				icon: 'warning',
+				text: 'Please wait for them to reconnect'
+			})
+		})
+		socket.on('user_reconnected', (msg: {user: string}) => {
+			console.log(`${msg.user} has reconnected`)
+			swal.fire({
+				title: <div>{msg.user} has reconnected</div>,
+				icon: 'success',
+				text: 'You may continue playing'
+			})
+		})
 		socket.on('game_over_notification', (notif: any) => {
 			swal
 				.fire({
@@ -212,7 +228,7 @@ export const Game: React.FC<RouteComponentProps> = ({ history }) => {
 			swal.fire({
 				title: <div>You have disconnected</div>,
 				icon: 'warning',
-				text: 'Please refresh without exiting this tab to reconnect'
+				text: 'Please rejoin the game without exiting this tab to reconnect'
 			})
 		})
 

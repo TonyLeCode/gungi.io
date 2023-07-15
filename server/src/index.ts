@@ -14,7 +14,7 @@ app.use(
 	cors({
 		origin: process.env.CORS_ORIGIN,
 		credentials: true,
-	})
+	}),
 );
 
 const http = require('http').Server(app);
@@ -34,7 +34,7 @@ const main = async () => {
 		const username = socket.handshake.auth.username;
 		const gameId = socket.handshake.auth.gameId;
 		const userId = socket.handshake.auth.userId;
-		console.log("auth:", socket.handshake.auth)
+		console.log('auth:', socket.handshake.auth);
 		socket.username = username;
 		socket.gameId = gameId;
 		socket.userId = userId;
@@ -58,22 +58,31 @@ const main = async () => {
 				userId: socket.userId,
 				username: socket.username,
 				userType: 'creator',
+				connected: true,
 			});
 		} else {
 			// TODO add reconnect here
-			const existingRoomId = sessionStore.getCurrentRoom(socket.userId)
+			//TODO if user is reconnect, make sure to set disconnected to connected
+			const existingRoomId = sessionStore.getCurrentRoom(socket.userId);
 
-			if(!existingRoomId || existingRoomId !== socket.gameId) {
+			if (!existingRoomId || existingRoomId !== socket.gameId) {
 				roomId = socket.gameId;
-	
+
 				sessionStore.addUser(roomId, {
 					userId: socket.userId,
 					username: socket.username,
 					userType: 'spectator',
+					connected: true,
 				});
 			} else {
-				console.log('reconnected')
-				roomId = existingRoomId
+				// const roomId = sessionStore.getCurrentRoom(socket.userId) ?? '';
+				roomId = existingRoomId;
+				const roomUsers = sessionStore.getUsers(roomId);
+				const user = roomUsers.find((x) => x.userId === socket.userId);
+				console.log(`${user?.username} has reconnected`);
+				io.to(roomId).emit('user_reconnected', {
+					user: user?.username,
+				});
 
 				// const updatedUsers = sessionStore.getUsers(roomId);
 				// io.to(roomId).emit('game', {
@@ -89,23 +98,20 @@ const main = async () => {
 		io.to(roomId).emit('roomId', roomId);
 		io.to(roomId).emit('users', users);
 
-		socket.on(
-			'init_game',
-			({ opponentId, roomId }: { opponentId: string; roomId: string }) => {
-				// emit game to all clients in room
-				const session = sessionStore.findSession(roomId);
-				if (session) {
-					session.gameStarted = true;
-				}
-				sessionStore.editUserType(roomId, opponentId, 'opponent');
-
-				const updatedUsers = sessionStore.getUsers(roomId);
-				io.to(roomId).emit('game', {
-					gameState: sessionStore.getGameState(roomId),
-					players: updatedUsers,
-				});
+		socket.on('init_game', ({ opponentId, roomId }: { opponentId: string; roomId: string }) => {
+			// emit game to all clients in room
+			const session = sessionStore.findSession(roomId);
+			if (session) {
+				session.gameStarted = true;
 			}
-		);
+			sessionStore.editUserType(roomId, opponentId, 'opponent');
+
+			const updatedUsers = sessionStore.getUsers(roomId);
+			io.to(roomId).emit('game', {
+				gameState: sessionStore.getGameState(roomId),
+				players: updatedUsers,
+			});
+		});
 
 		socket.on('spectate_active_game', ({ gameId }: { gameId: string }) => {
 			const updatedUsers = sessionStore.getUsers(gameId);
@@ -115,23 +121,20 @@ const main = async () => {
 			});
 		});
 
-		socket.on(
-			'make_move',
-			({ roomId, move }: { roomId: string; move: Move }) => {
-				sessionStore.makeGameMove(roomId, move);
+		socket.on('make_move', ({ roomId, move }: { roomId: string; move: Move }) => {
+			sessionStore.makeGameMove(roomId, move);
 
-				if (move.type === 'ready') {
-					io.to(roomId).emit('readied', {
-						userId: socket.userId,
-					});
-				}
-
-				// emit updated game to all clients in room
-				io.to(roomId).emit('game_updated', {
-					gameState: sessionStore.getGameState(roomId),
+			if (move.type === 'ready') {
+				io.to(roomId).emit('readied', {
+					userId: socket.userId,
 				});
 			}
-		);
+
+			// emit updated game to all clients in room
+			io.to(roomId).emit('game_updated', {
+				gameState: sessionStore.getGameState(roomId),
+			});
+		});
 
 		socket.on('game_over', ({ forfeit }: { forfeit: boolean }) => {
 			const roomId = sessionStore.getCurrentRoom(socket.userId) ?? '';
@@ -159,6 +162,11 @@ const main = async () => {
 			const roomId = sessionStore.getCurrentRoom(socket.userId) ?? '';
 			const roomUsers = sessionStore.getUsers(roomId);
 			const user = roomUsers.find((x) => x.userId === socket.userId);
+			console.log(`${user?.username} has disconnected`);
+			console.log(socket.username);
+			console.log(user?.username);
+			//TODO see if all players are disconnect, if so, delete session
+			//TODO make sure user state is set to disconnected
 
 			if (user?.userType === 'spectator') {
 				// update players and emit event
@@ -167,11 +175,18 @@ const main = async () => {
 					users: sessionStore.getUsers(roomId),
 				});
 			} else {
-				if(roomUsers.length == 0){
-					// destory room and emit event
-					sessionStore.destroySession(roomId);
-					io.to(roomId).emit('game_destroyed');
-				}
+				console.log('user disconnected');
+				io.to(roomId).emit('user_disconnected', {
+					user: user?.username,
+				});
+			}
+			console.log(roomUsers);
+
+			if (roomUsers.length == 1) {
+				// destory room and emit event
+				console.log('destroy');
+				sessionStore.destroySession(roomId);
+				io.to(roomId).emit('game_destroyed');
 			}
 		});
 	});
@@ -189,7 +204,7 @@ const main = async () => {
 					users: x.users,
 					gameStarted: x.gameStarted,
 				};
-			})
+			}),
 		);
 	});
 
