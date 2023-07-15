@@ -208,6 +208,13 @@ export const Game: React.FC<RouteComponentProps> = ({ history }) => {
 					}
 				});
 		});
+		socket.on('disconnect', () => {
+			swal.fire({
+				title: <div>You have disconnected</div>,
+				icon: 'warning',
+				text: 'Please refresh without exiting this tab to reconnect'
+			})
+		})
 
 		return () => {
 			socket.disconnect();
